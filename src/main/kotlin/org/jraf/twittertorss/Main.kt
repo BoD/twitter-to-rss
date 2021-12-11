@@ -135,16 +135,14 @@ private fun getRss(
     )
     val tweets = twitterClient.getTweets(listId)
 
-    val channelLink = selfLink//.escapeHTML()
-
     return xml("rss") {
         includeXmlProlog = true
         attribute("version", "2.0")
         "channel" {
             "title" { -"Tweets for list $listId" }
             "description" { -"Tweets for list $listId" }
-            "link" { -channelLink }
-//            "ttl" { -"60" }
+            "link" { -selfLink }
+            "ttl" { -"60" }
             for (tweet in tweets) {
                 "item" {
                     "link" { -tweet.url }
@@ -156,36 +154,7 @@ private fun getRss(
                 }
             }
         }
-    }.toString(printOptions = PrintOptions(singleLineTextElements = true, indent = "  "))
-
-//    return buildString {
-//        append(
-//            """
-//            <?xml version="1.0" encoding="UTF-8"?>
-//            <rss version="2.0">
-//                <channel>
-//                    <title>Tweets for list $listId</title>
-//                    <description>Tweets for list $listId</description>
-//                    <link>$channelLink</link>
-//            """.trimIndent())
-//
-//        for (tweet in tweets) {
-//            append(
-//                """
-//                <item>
-//                    <link>${tweet.url.escapeHTML()}</link>
-//                    <guid isPermaLink="true">${tweet.id.toString().escapeHTML()}</guid>
-//                    <pubDate>${formatPubDate(tweet.createdAt)}</pubDate>
-//                </item>
-//                """.trimIndent())
-//        }
-//
-//        append(
-//            """
-//                </channel>
-//            </rss>
-//            """.trimIndent())
-//    }
+    }.toString(PrintOptions(singleLineTextElements = true, indent = "  "))
 }
 
 private fun formatPubDate(date: Date): String = PUB_DATE_FORMAT.format(LocalDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT")))
