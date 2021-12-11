@@ -1,0 +1,1 @@
+web: build/install/twitter-to-rss/bin/twitter-to-rss

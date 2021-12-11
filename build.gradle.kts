@@ -40,6 +40,10 @@ tasks {
     compileTestKotlin {
         kotlinOptions.jvmTarget = "1.8"
     }
+
+    register("stage") {
+        dependsOn(":installDist")
+    }
 }
 
 // Run `./gradlew refreshVersions` to update dependencies
