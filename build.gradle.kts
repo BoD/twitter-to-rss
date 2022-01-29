@@ -47,3 +47,4 @@ tasks {
 }
 
 // Run `./gradlew refreshVersions` to update dependencies
+// Run `./gradlew distZip` to create a zip distribution
