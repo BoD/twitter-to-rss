@@ -13,38 +13,16 @@ repositories {
 dependencies {
     implementation(Ktor.server.core)
     implementation(Ktor.server.netty)
+    implementation(Ktor.server.defaultHeaders)
+    implementation(Ktor.server.statusPages)
     implementation("org.twitter4j:twitter4j-core:_")
     implementation("org.redundent:kotlin-xml-builder:_")
     runtimeOnly("ch.qos.logback:logback-classic:_")
-    testImplementation(kotlin("test"))
 }
 
 application {
     mainClass.set("org.jraf.twittertorss.MainKt")
 }
 
-tasks {
-    wrapper {
-        distributionType = Wrapper.DistributionType.ALL
-        gradleVersion = "7.3.1"
-    }
-
-    test {
-        useJUnitPlatform()
-    }
-
-    compileKotlin {
-        kotlinOptions.jvmTarget = "1.8"
-    }
-
-    compileTestKotlin {
-        kotlinOptions.jvmTarget = "1.8"
-    }
-
-    register("stage") {
-        dependsOn(":installDist")
-    }
-}
-
-// Run `./gradlew refreshVersions` to update dependencies
-// Run `./gradlew distZip` to create a zip distribution
+// `./gradlew refreshVersions` to update dependencies
+// `./gradlew distZip` to create a zip distribution

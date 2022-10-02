@@ -24,32 +24,32 @@
  */
 package org.jraf.twittertorss
 
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLBuilder
+import io.ktor.http.withCharset
+import io.ktor.server.application.call
+import io.ktor.server.application.install
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.host
+import io.ktor.server.request.uri
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
+import org.redundent.kotlin.xml.PrintOptions
+import org.redundent.kotlin.xml.xml
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.DefaultHeaders
-import io.ktor.features.StatusPages
-import io.ktor.features.origin
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.URLBuilder
-import io.ktor.http.withCharset
-import io.ktor.request.host
-import io.ktor.request.uri
-import io.ktor.response.respond
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import org.redundent.kotlin.xml.PrintOptions
-import org.redundent.kotlin.xml.xml
 
-private const val DEFAULT_PORT = 8042
+private const val DEFAULT_PORT = 8080
 
 private const val ENV_PORT = "PORT"
 
@@ -60,8 +60,6 @@ private const val PARAM_OAUTH_CONSUMER_SECRET = "oAuthConsumerSecret"
 private const val PARAM_OAUTH_ACCESS_TOKEN = "oAuthAccessToken"
 private const val PARAM_OAUTH_ACCESS_TOKEN_SECRET = "oAuthAccessTokenSecret"
 
-private const val APP_URL = "https://bod-twitter-to-rss.herokuapp.com"
-
 private val PUB_DATE_FORMAT = DateTimeFormatter.ofPattern("EEE, d MMM yyyy HH:mm:ss 'Z'", Locale.US)
 
 fun main() {
@@ -70,17 +68,17 @@ fun main() {
         install(DefaultHeaders)
 
         install(StatusPages) {
-            status(HttpStatusCode.NotFound) {
+            status(HttpStatusCode.NotFound) { call, status ->
                 call.respondText(
-                    text = "Usage: $APP_URL/<$PATH_LIST_ID>",
-                    status = it
+                    text = "Usage: ${call.request.local.scheme}://${call.request.local.host}:${call.request.local.port}//<$PATH_LIST_ID>",
+                    status = status
                 )
             }
 
-            exception<IllegalArgumentException> { exception ->
+            exception<IllegalArgumentException> { call, exception ->
                 call.respond(HttpStatusCode.BadRequest, exception.message ?: "Bad request")
             }
-            exception<TwitterClientException> { exception ->
+            exception<TwitterClientException> { call, exception ->
                 call.respond(
                     HttpStatusCode.BadRequest, exception.message ?: "Could not retrieve the list's tweets"
                 )
@@ -89,21 +87,27 @@ fun main() {
 
         routing {
             get("{$PATH_LIST_ID}") {
-                val listId = call.parameters[PATH_LIST_ID]?.toLongOrNull() ?: throw IllegalArgumentException("Invalid list ID")
+                val listId =
+                    call.parameters[PATH_LIST_ID]?.toLongOrNull() ?: throw IllegalArgumentException("Invalid list ID")
 
-                val oAuthConsumerKey = call.request.queryParameters[PARAM_OAUTH_CONSUMER_KEY] ?: throw IllegalArgumentException("Missing oAuthConsumerKey")
+                val oAuthConsumerKey = call.request.queryParameters[PARAM_OAUTH_CONSUMER_KEY]
+                    ?: throw IllegalArgumentException("Missing oAuthConsumerKey")
                 val oAuthConsumerSecret =
-                    call.request.queryParameters[PARAM_OAUTH_CONSUMER_SECRET] ?: throw IllegalArgumentException("Missing oAuthConsumerSecret")
-                val oAuthAccessToken = call.request.queryParameters[PARAM_OAUTH_ACCESS_TOKEN] ?: throw IllegalArgumentException("Missing oAuthAccessToken")
+                    call.request.queryParameters[PARAM_OAUTH_CONSUMER_SECRET]
+                        ?: throw IllegalArgumentException("Missing oAuthConsumerSecret")
+                val oAuthAccessToken = call.request.queryParameters[PARAM_OAUTH_ACCESS_TOKEN]
+                    ?: throw IllegalArgumentException("Missing oAuthAccessToken")
                 val oAuthAccessTokenSecret =
-                    call.request.queryParameters[PARAM_OAUTH_ACCESS_TOKEN_SECRET] ?: throw IllegalArgumentException("Missing oAuthAccessTokenSecret")
+                    call.request.queryParameters[PARAM_OAUTH_ACCESS_TOKEN_SECRET]
+                        ?: throw IllegalArgumentException("Missing oAuthAccessTokenSecret")
 
-                val selfLink = URLBuilder("${call.request.origin.scheme}://${call.request.host()}${call.request.uri}").apply {
-                    parameters.append(PARAM_OAUTH_CONSUMER_KEY, oAuthConsumerKey)
-                    parameters.append(PARAM_OAUTH_CONSUMER_SECRET, oAuthConsumerSecret)
-                    parameters.append(PARAM_OAUTH_ACCESS_TOKEN, oAuthAccessToken)
-                    parameters.append(PARAM_OAUTH_ACCESS_TOKEN_SECRET, oAuthAccessTokenSecret)
-                }.buildString()
+                val selfLink =
+                    URLBuilder("${call.request.origin.scheme}://${call.request.host()}${call.request.uri}").apply {
+                        parameters.append(PARAM_OAUTH_CONSUMER_KEY, oAuthConsumerKey)
+                        parameters.append(PARAM_OAUTH_CONSUMER_SECRET, oAuthConsumerSecret)
+                        parameters.append(PARAM_OAUTH_ACCESS_TOKEN, oAuthAccessToken)
+                        parameters.append(PARAM_OAUTH_ACCESS_TOKEN_SECRET, oAuthAccessTokenSecret)
+                    }.buildString()
                 call.respondText(
                     getRss(
                         selfLink = selfLink,
@@ -113,7 +117,8 @@ fun main() {
                         oAuthAccessTokenSecret = oAuthAccessTokenSecret,
                         listId = listId,
                     ),
-                    ContentType.Application.Rss.withCharset(Charsets.UTF_8))
+                    ContentType.Application.Rss.withCharset(Charsets.UTF_8)
+                )
             }
         }
     }.start(wait = true)
@@ -151,10 +156,12 @@ private fun getRss(
                         -tweet.url
                     }
                     "pubDate" { -formatPubDate(tweet.createdAt) }
+                    "description" { -tweet.text }
                 }
             }
         }
     }.toString(PrintOptions(singleLineTextElements = true, indent = "  "))
 }
 
-private fun formatPubDate(date: Date): String = PUB_DATE_FORMAT.format(LocalDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT")))
+private fun formatPubDate(date: Date): String =
+    PUB_DATE_FORMAT.format(LocalDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT")))
