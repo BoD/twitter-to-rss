@@ -156,7 +156,8 @@ private fun getRss(
                         -tweet.url
                     }
                     "pubDate" { -formatPubDate(tweet.createdAt) }
-                    "description" { -tweet.text }
+                    // Slack RSS bot already fetches the text from the link, so it's not necessary to include it here
+//                    "description" { -tweet.text }
                 }
             }
         }
