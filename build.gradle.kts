@@ -1,53 +1,72 @@
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-
 plugins {
-    kotlin("jvm")
-    application
-    id("com.bmuschko.docker-java-application")
+  kotlin("multiplatform")
+  kotlin("plugin.serialization")
 }
 
 group = "org.jraf"
 version = "1.0.0"
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
-dependencies {
-    implementation(Ktor.server.core)
-    implementation(Ktor.server.netty)
-    implementation(Ktor.server.defaultHeaders)
-    implementation(Ktor.server.statusPages)
-    implementation("org.twitter4j:twitter4j-core:_")
-    implementation("org.redundent:kotlin-xml-builder:_")
-    runtimeOnly("ch.qos.logback:logback-classic:_")
-}
-
-application {
-    mainClass.set("org.jraf.twittertorss.MainKt")
-}
-
-docker {
-    javaApplication {
-        maintainer.set("BoD <BoD@JRAF.org>")
-        ports.set(listOf(8080))
-        images.add("bodlulu/${rootProject.name}:latest")
-        jvmArgs.set(listOf("-Xms16m", "-Xmx128m"))
+kotlin {
+  jvm {
+    compilations.all {
+      kotlinOptions {
+        jvmTarget = "1.8"
+      }
     }
-    registryCredentials {
-        username.set(System.getenv("DOCKER_USERNAME"))
-        password.set(System.getenv("DOCKER_PASSWORD"))
+  }
+  macosArm64 {
+    binaries {
+      executable {
+        entryPoint = "org.jraf.twittertorss.main"
+      }
     }
-}
+  }
+  linuxX64 {
+    binaries {
+      executable {
+        entryPoint = "org.jraf.twittertorss.main"
+      }
+    }
+  }
 
-tasks.withType<DockerBuildImage> {
-    platform.set("linux/amd64")
-}
+  sourceSets {
+    val commonMain by getting {
+      dependencies {
+        implementation(Ktor.server.core)
+        implementation(Ktor.server.cio)
+        implementation(Ktor.server.statusPages)
+        implementation(Ktor.client.core)
+        implementation(Ktor.client.contentNegotiation)
+        implementation(KotlinX.serialization.json)
+        implementation(Ktor.plugins.serialization.kotlinx.json)
+      }
+    }
+    val macosArm64Main by getting {
+      dependencies {
+        implementation(Ktor.client.curl)
+      }
+    }
+    val linuxX64Main by getting {
+      dependencies {
+        implementation(Ktor.client.curl)
+      }
+    }
+    val jvmMain by getting {
+      dependencies {
+        implementation(Ktor.client.okHttp)
+      }
+    }
 
-tasks.withType<com.bmuschko.gradle.docker.tasks.image.Dockerfile> {
-    environmentVariable("MALLOC_ARENA_MAX", "4")
+    val jvmTest by getting {
+      dependencies {
+        implementation(Kotlin.test.junit)
+      }
+    }
+  }
 }
 
 // `./gradlew refreshVersions` to update dependencies
-// `./gradlew distZip` to create a zip distribution
-// `DOCKER_USERNAME=<your docker hub login> DOCKER_PASSWORD=<your docker hub password> ./gradlew dockerPushImage` to build and push the image
