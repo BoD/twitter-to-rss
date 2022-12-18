@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
   kotlin("multiplatform")
   kotlin("plugin.serialization")
@@ -65,6 +67,13 @@ kotlin {
       dependencies {
         implementation(Kotlin.test.junit)
       }
+    }
+  }
+
+  // See https://kotlinlang.org/docs/native-memory-manager.html#memory-consumption
+  targets.withType<KotlinNativeTarget> {
+    binaries.all {
+      freeCompilerArgs = freeCompilerArgs + "-Xallocator=std"
     }
   }
 }
