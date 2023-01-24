@@ -47,6 +47,7 @@ import io.ktor.utils.io.charsets.Charsets
 import org.jraf.twittertorss.atom.Atom
 import org.jraf.twittertorss.twitter.TwitterClient
 import org.jraf.twittertorss.twitter.TwitterClientException
+import org.jraf.twittertorss.util.exitProcess
 
 private const val PORT = 8080
 
@@ -60,6 +61,8 @@ fun main() {
 }
 
 private fun Application.twitterToRssModule() {
+  var counter: Int = 0
+
   install(StatusPages) {
     status(HttpStatusCode.NotFound) { call, status ->
       call.respondText(
@@ -102,6 +105,12 @@ private fun Application.twitterToRssModule() {
         atomText,
         ContentType.Application.Atom.withCharset(Charsets.UTF_8)
       )
+
+      // See https://youtrack.jetbrains.com/issue/KTOR-4288/Non-heap-memory-leak-when-making-a-request-and-closing-a-client
+      counter++
+      if (counter == 100) {
+        exitProcess(-1)
+      }
     }
   }
 }

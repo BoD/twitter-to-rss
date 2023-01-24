@@ -36,6 +36,8 @@ kotlin {
   }
 
   sourceSets {
+    val nativeMain by creating
+
     val commonMain by getting {
       dependencies {
         implementation(Ktor.server.core)
@@ -48,11 +50,13 @@ kotlin {
       }
     }
     val macosArm64Main by getting {
+      dependsOn(nativeMain)
       dependencies {
         implementation(Ktor.client.curl)
       }
     }
     val linuxX64Main by getting {
+      dependsOn(nativeMain)
       dependencies {
         implementation(Ktor.client.curl)
       }
